@@ -13,7 +13,7 @@ void main() async {
 }
 
 class MemoramaApp extends StatelessWidget {
-  const MemoramaApp({super.key});
+  const MemoramaApp({super.key}); //id unico para identificastr
 
   @override
   Widget build(BuildContext context) {
@@ -22,9 +22,9 @@ class MemoramaApp extends StatelessWidget {
       title: 'Memorama',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-//        useMaterial3: true,
+        //        useMaterial3: true,
       ),
-        home: GameScreen(),      
+      home: GameScreen(),
     );
   }
 }
