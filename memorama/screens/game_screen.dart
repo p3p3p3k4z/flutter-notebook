@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Card;
 import '../models/card_model.dart';
 import '../utils/load_cards.dart';
+import '../widgets/animated_card.dart';
 import 'dart:async';
 
 // widget con estado porque el juego cambia constantemente
@@ -46,7 +47,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // funcion asincrona para esperar un segundo antes de voltear las cartas
   Future<void> checkForMatch() async {
-    final firstIndex = selectedIndices[0];
+    final firstIndex = selectedIndices[0]; //cartas volteadas a comparar
     final secondIndex = selectedIndices[1];
 
     final firstCard = cards[firstIndex];
@@ -58,6 +59,7 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       // si tienen el mismo id se quedan volteadas
       if (firstCard.id == secondCard.id) {
+        //abrir las cartas
         firstCard.isMatched = true;
         secondCard.isMatched = true;
       } else {
@@ -74,6 +76,34 @@ class _GameScreenState extends State<GameScreen> {
       selectedIndices.clear();
       isChecking = false;
     });
+
+    // revisa si todas las cartas de la lista estan marcadas como ganadas
+    if (cards.every((card) => card.isMatched)) {
+      // detiene el cronometro porque ya no hay mas cartas
+      stopTimer();
+
+      // lanza la ventana de victoria con un pequeño retraso
+      Future.delayed(const Duration(milliseconds: 300), () {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Juego completado'),
+            content: Text(
+              'Tiempo final: ${elapsedSeconds ~/ 60}:${(elapsedSeconds % 60).toString().padLeft(2, '0')}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  resetGame();
+                },
+                child: const Text('Reiniciar'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
   }
 
   // detiene el contador de segundos
@@ -96,7 +126,6 @@ class _GameScreenState extends State<GameScreen> {
     startTimer();
   }
 
-  // logica al tocar una carta
   void onCardTapped(int index) {
     // si estamos comparando no hace nada
     if (isChecking) return;
@@ -157,7 +186,12 @@ class _GameScreenState extends State<GameScreen> {
       ),
       // llama a la funcion de dibujar carta para cada posicion
       itemBuilder: (context, index) {
-        return buildCard(cards[index], index);
+        // return buildCard(cards[index], index);
+        // 1 0
+        return AnimatedMemoryCard(
+          card: cards[index],
+          onTap: () => onCardTapped(index),
+        );
       },
     );
   }
