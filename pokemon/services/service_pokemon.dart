@@ -5,9 +5,7 @@ import '../models/pokemon.dart';
 class ServicePokemon {
   Future<Pokemon> fetchPokemon(String name) async {
     // se define la URL
-    final url = Uri.parse(
-      'https://pokeapi.co/api/v2/pokemon/${name.toLowerCase()}',
-    );
+    final url = Uri.parse('https://pokeapi.co/api/v2/pokemon/${name.trim().toLowerCase()}');
 
     // se obtiene el recurso asíncrono
     final resp = await http.get(url);
