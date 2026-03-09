@@ -28,7 +28,6 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      // cambiar la etiqueta de debug
       debugShowCheckedModeBanner: false,
 
       theme: ThemeData(
@@ -103,39 +102,51 @@ class _PokemonScreenState extends State<PokemonScreen> {
                       padding: const EdgeInsets.all(8.0),
                       child: Text("Inserta un nombre"),
                     )
-                  : Column(
-                      children: [
-                        FutureBuilder<Pokemon>(
-                          future: _futurePokemom,
-                          builder: (context, datos) {
-                            if (datos.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(child: CircularProgressIndicator());
-                            }
-                            if (datos.hasError) {
-                              return Center(
-                                child: Text("Pokemon no existe en la api"),
-                              );
-                            }
-                            final pokemon =
-                                datos.data!; // datos para desplegar lo faltante
+                  : FutureBuilder<Pokemon>(
+                      future: _futurePokemom,
+                      builder: (context, datos) {
+                        if (datos.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                        if (datos.hasError) {
+                          return Center(
+                            child: Text("Pokemon no existe en la api"),
+                          );
+                        }
+                        final pokemon =
+                            datos.data!; // datos para desplegar lo faltante
 
-                            return Expanded(
-                              child: VistaPokemon(pokemon: pokemon),
-                            );
-                          },
-                        ),
-                      ],
+                        // vista separada para no recargar toda la pantalla
+                        return VistaPokemon(pokemon: pokemon);
+                      },
                     ),
             ),
           ],
         ),
       ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: "btnClaro",
+            onPressed: () => widget.changeTheme(ThemeMode.light),
+            tooltip: 'Modo claro',
+            child: Icon(Icons.light_mode),
+          ),
+          SizedBox(width: 15),
+          FloatingActionButton(
+            heroTag: "btnOscuro",
+            onPressed: () => widget.changeTheme(ThemeMode.dark),
+            tooltip: 'Modo oscuro',
+            child: Icon(Icons.dark_mode),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// Widget de la galería interactiva
+// galeria interactiva
 class VistaPokemon extends StatefulWidget {
   final Pokemon pokemon;
 
@@ -146,7 +157,7 @@ class VistaPokemon extends StatefulWidget {
 }
 
 class _VistaPokemonState extends State<VistaPokemon> {
-  int indiceActual = 0; // Controla la imagen visible
+  int indiceActual = 0; // imagen visible
 
   void _siguienteImagen() {
     setState(() {
@@ -176,20 +187,16 @@ class _VistaPokemonState extends State<VistaPokemon> {
           Text(widget.pokemon.name.toLowerCase()),
           SizedBox(height: 20),
           //Image.network(pokemon.imageURL),
-          SvgPicture.network(
-            widget.pokemon.imageURL,
-            height: 120,
-          ), // SVG ajustado
+          SvgPicture.network(widget.pokemon.imageURL, height: 120),
 
           SizedBox(height: 20),
 
-          // Despliegue de habilidades obtenidas
           Text("Habilidades:", style: TextStyle(fontWeight: FontWeight.bold)),
           ...widget.pokemon.abilities.map((habilidad) => Text(habilidad)),
 
           SizedBox(height: 20),
 
-          // Renderizado de galería PNG y botones
+          // galeria PNG y botones
           if (widget.pokemon.galleryImages.isNotEmpty) ...[
             Image.network(
               widget.pokemon.galleryImages[indiceActual],
@@ -213,22 +220,6 @@ class _VistaPokemonState extends State<VistaPokemon> {
           ],
         ],
       ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            onPressed: () => widget.changeTheme(ThemeMode.light),
-            tooltip: 'Modo claro',
-            child: Icon(Icons.light_mode),
-          ),
-          FloatingActionButton(
-            onPressed: () => widget.changeTheme(ThemeMode.dark),
-            tooltip: 'Modo oscuro',
-            child: Icon(Icons.dark_mode),
-          ),
-        ],
-      ),
     );
   }
 }
-
