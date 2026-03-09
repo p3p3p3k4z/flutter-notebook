@@ -8,21 +8,50 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  ThemeMode _themeMode = ThemeMode.dark;
+
+  void _changeTheme(ThemeMode thememode) {
+    setState(() {
+      _themeMode = thememode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
-      home: const PokemonScreen(),
+      // cambiar la etiqueta de debug
+      debugShowCheckedModeBanner: false,
+
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blueAccent,
+          brightness: Brightness.light,
+        ),
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 63, 181, 63),
+          brightness: Brightness.dark,
+        ),
+      ),
+      themeMode: _themeMode,
+      home: PokemonScreen(changeTheme: _changeTheme),
     );
   }
 }
 
 class PokemonScreen extends StatefulWidget {
-  const PokemonScreen({super.key});
+  final void Function(ThemeMode) changeTheme;
+  const PokemonScreen({super.key, required this.changeTheme});
 
   @override
   State<PokemonScreen> createState() => _PokemonScreenState();
@@ -67,7 +96,7 @@ class _PokemonScreenState extends State<PokemonScreen> {
               child: Text("Buscar el pokemon"),
             ),
             Text("Datos de pokemon", style: TextStyle(fontSize: 25)),
-            
+
             Expanded(
               child: _futurePokemom == null
                   ? Padding(
@@ -90,8 +119,10 @@ class _PokemonScreenState extends State<PokemonScreen> {
                             }
                             final pokemon =
                                 datos.data!; // datos para desplegar lo faltante
-                            
-                            return Expanded(child: VistaPokemon(pokemon: pokemon));
+
+                            return Expanded(
+                              child: VistaPokemon(pokemon: pokemon),
+                            );
                           },
                         ),
                       ],
@@ -107,7 +138,7 @@ class _PokemonScreenState extends State<PokemonScreen> {
 // Widget de la galería interactiva
 class VistaPokemon extends StatefulWidget {
   final Pokemon pokemon;
-  
+
   const VistaPokemon({super.key, required this.pokemon});
 
   @override
@@ -145,14 +176,17 @@ class _VistaPokemonState extends State<VistaPokemon> {
           Text(widget.pokemon.name.toLowerCase()),
           SizedBox(height: 20),
           //Image.network(pokemon.imageURL),
-          SvgPicture.network(widget.pokemon.imageURL, height: 120), // SVG ajustado
-          
+          SvgPicture.network(
+            widget.pokemon.imageURL,
+            height: 120,
+          ), // SVG ajustado
+
           SizedBox(height: 20),
 
           // Despliegue de habilidades obtenidas
           Text("Habilidades:", style: TextStyle(fontWeight: FontWeight.bold)),
           ...widget.pokemon.abilities.map((habilidad) => Text(habilidad)),
-          
+
           SizedBox(height: 20),
 
           // Renderizado de galería PNG y botones
@@ -179,6 +213,22 @@ class _VistaPokemonState extends State<VistaPokemon> {
           ],
         ],
       ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () => widget.changeTheme(ThemeMode.light),
+            tooltip: 'Modo claro',
+            child: Icon(Icons.light_mode),
+          ),
+          FloatingActionButton(
+            onPressed: () => widget.changeTheme(ThemeMode.dark),
+            tooltip: 'Modo oscuro',
+            child: Icon(Icons.dark_mode),
+          ),
+        ],
+      ),
     );
   }
 }
+
