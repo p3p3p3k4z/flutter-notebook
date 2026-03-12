@@ -1,15 +1,23 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 import 'service.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-
+List<CameraDescription> cameras = [];
 
 void main() async {
-  //inicializar el servicio TF
+  //inicializar el servicio TF y la camara
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    // Obtener las camaras del dispositivo
+    cameras = await availableCameras();
+  } catch (e) {
+    print("Error al obtener camaras: $e");
+  }
+
   final tfService = TFService();
   await tfService.loadModel();
 
@@ -20,7 +28,6 @@ class MyApp extends StatelessWidget {
   final TFService tfService;
   const MyApp({super.key, required this.tfService});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -30,7 +37,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: ModelScreen(tfService: tfService), // 👈 PANTALLA PRINCIPAL
+      home: ModelScreen(tfService: tfService),
     );
   }
 }
@@ -45,33 +52,49 @@ class ModelScreen extends StatefulWidget {
 
 class ModelScreenState extends State<ModelScreen> {
   List<String> _labels = [];
-
   String _output = 'Presionar el botón para ejecutar el modelo';
-
   File? _image;
+
+  CameraController? _controller;
+  Future<void>? _initializeControllerFuture;
 
   @override
   void initState() {
     super.initState();
     _loadLabels();
+    _setupCamera(); // inicializar camara al iniciar
   }
 
+  // configurar la camara trasera
+  void _setupCamera() {
+    if (cameras.isEmpty) return;
+    
+    _controller = CameraController(
+      cameras[0], // camara trasera
+      ResolutionPreset.medium,
+    );
+    _initializeControllerFuture = _controller!.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose(); // liberar recurso de camara
+    super.dispose();
+  }
 
   var customLogger = Logger(
     printer: PrettyPrinter(
-      methodCount: 2, // number of method calls to be displayed
-      errorMethodCount: 8, // number of method calls if stacktrace is provided
-      lineLength: 120, // width of the output
-      colors: true, // Colorful log messages
-      printEmojis: true, // Print an emoji for each log message
+      methodCount: 2, 
+      errorMethodCount: 8, 
+      lineLength: 120, 
+      colors: true, 
+      printEmojis: true, 
     ),
   );
-
 
   int _argMax(List<double> values) {
     int maxIndex = 0;
     double maxValue = values[0];
-
     for (int i = 1; i < values.length; i++) {
       if (values[i] > maxValue) {
         maxValue = values[i];
@@ -88,14 +111,19 @@ class ModelScreenState extends State<ModelScreen> {
     });
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
+  Future<void> _takePicture() async {
+    try {
+      await _initializeControllerFuture;
+      final image = await _controller!.takePicture();
+      
       setState(() {
-        _image = File(pickedFile.path);
+        _image = File(image.path);
+        _output = "Foto capturada. List para clasificar.";
       });
+      
+      _runModel(); // Ejecutar el modelo automaticamente al tomar la foto
+    } catch (e) {
+      customLogger.e("Error al tomar foto: $e");
     }
   }
 
@@ -108,16 +136,8 @@ class ModelScreenState extends State<ModelScreen> {
     }
 
     try {
-      // var input = List.generate(
-      //   1, (i) =>  List.generate(
-      //     224, (y) => List.generate(
-      //       224, (x) => List.generate(3, (c) => 0.50)
-      //     )
-      //   )
-      // );
-
+      // Usar el modelo de ML para clasificar la foto tomada
       List<double> result = await widget.tfService.runModel(_image!);
-
 
       final int predictedIndex = _argMax(result);
       final String predictedLabel = _labels[predictedIndex];
@@ -125,7 +145,6 @@ class ModelScreenState extends State<ModelScreen> {
 
       customLogger.i('Result : $result');
       setState(() {
-        //_output = result.toString();
         _output =
             'Predicción: $predictedLabel\nConfianza: ${(confidence * 100).toStringAsFixed(2)}%';
       });
@@ -145,20 +164,37 @@ class ModelScreenState extends State<ModelScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _image == null
-                  ? Text('No image selected.')
-                  : Image.file(_image!, height: 200),
-              ElevatedButton(
-                onPressed: _pickImage,
-                child: Text("Seleccionar Imagen"),
+              // Vista previa de la camara o imagen capturada
+              SizedBox(
+                height: 300,
+                child: _image == null 
+                  ? FutureBuilder<void>(
+                      future: _initializeControllerFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.done) {
+                          return CameraPreview(_controller!);
+                        } else {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                      },
+                    )
+                  : Image.file(_image!),
               ),
 
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _runModel,
-                child: Text("Ejecutar Modelo"),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _takePicture,
+                icon: const Icon(Icons.camera),
+                label: const Text("Tomar Foto y Clasificar"),
               ),
-              SizedBox(height: 20),
+
+              if (_image != null) 
+                TextButton(
+                  onPressed: () => setState(() => _image = null),
+                  child: const Text("Resetear Camara"),
+                ),
+
+              const SizedBox(height: 20),
               Text(_output, textAlign: TextAlign.center),
             ],
           ),
