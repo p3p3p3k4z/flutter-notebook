@@ -38,6 +38,7 @@ dependencies:
   logger: ^2.6.2
   image_picker: ^1.2.1
   image: ^4.7.2
+  camera: ^0.11.0
 
 dev_dependencies:
   flutter_test:
