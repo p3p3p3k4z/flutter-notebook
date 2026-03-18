@@ -1,28 +1,28 @@
-//import 'package:light/light.dart';
-
 import '../services/light_service.dart';
 import 'package:flutter/material.dart';
 
 class ThemeController extends ChangeNotifier {
-  //
   final LightService _lightService = LightService();
+  ThemeMode _thememode = ThemeMode.light; //tema a usar
+  
+  int _lux = 0;  //intseidad de luz para interfaz
 
-  ThemeMode _thememode = ThemeMode.light;
-
-  //getter
   ThemeMode get thememode => _thememode;
+  int get lux => _lux; 
 
   void startListening() {
-    // leer el stream
-    _lightService.lightStream.listen((lux) {
-      if (lux > 50) {
+    _lightService.lightStream.listen((valorCapturado) {
+      // Actualizamos el valor y notificamos a la UI
+      _lux = valorCapturado; 
+      
+      // Aplica la lógica de negocio para determinar el umbral de cambio de tema.
+      if (valorCapturado > 50) {
         _thememode = ThemeMode.light;
       } else {
         _thememode = ThemeMode.dark;
       }
+      
+      notifyListeners(); // Dispara una señal de actualización a todos los widgets que dependen de este controlador.
     });
-
-    // los que escuchan serán notificados
-    notifyListeners();
   }
 }

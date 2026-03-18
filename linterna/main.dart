@@ -34,8 +34,8 @@ class _MyAppState extends State<MyApp> {
 
           themeMode: controller.thememode,
 
-          home: HomePage(),
-          //home: HomePage(lux: controller.lux),
+          //home: HomePage(),
+          home: HomePage(lux: controller.lux),
         );
       },
     );
